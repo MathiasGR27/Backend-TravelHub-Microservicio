@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const { createProxyMiddleware } = require("http-proxy-middleware");
-
 const app = express();
 
 app.use(cors());
@@ -11,7 +10,6 @@ app.use(
   createProxyMiddleware({
     target: "http://localhost:4001",
     changeOrigin: true,
-
     pathRewrite: (path, req) => {
       return `/api/auth${path}`;
     }
@@ -23,7 +21,6 @@ app.use(
   createProxyMiddleware({
     target: "http://localhost:4002",
     changeOrigin: true,
-
     pathRewrite: (path) => {
       return `/api/vuelos${path}`;
     }
@@ -35,7 +32,6 @@ app.use(
   createProxyMiddleware({
     target: "http://localhost:4001",
     changeOrigin: true,
-
     pathRewrite: (path) => {
       return `/api/usuarios${path}`;
     }
@@ -48,8 +44,7 @@ app.use(
     target: "http://localhost:4001",
     changeOrigin: true,
     pathRewrite: {
-      "^/uploads": "/uploads"
-    },
+      "^/uploads": "/uploads"},
     ws: true,
     logLevel: "debug"
   })
@@ -60,7 +55,6 @@ app.use(
   createProxyMiddleware({
     target: "http://localhost:4003",
     changeOrigin: true,
-
     pathRewrite: (path) => {
       return `/api/reservas${path}`;
     }
@@ -72,7 +66,6 @@ app.use(
   createProxyMiddleware({
     target: "http://localhost:4004",
     changeOrigin: true,
-
     pathRewrite: (path) => {
       return `/api/pagos${path}`;
     }
@@ -84,7 +77,6 @@ app.use(
   createProxyMiddleware({
     target: "http://localhost:4005",
     changeOrigin: true,
-
     pathRewrite: (path) => {
       return `/api/admin${path}`;
     }
