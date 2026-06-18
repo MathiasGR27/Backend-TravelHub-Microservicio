@@ -42,6 +42,18 @@ app.use(
   })
 );
 
+app.use(
+  "/api/reservas",
+  createProxyMiddleware({
+    target: "http://localhost:4003",
+    changeOrigin: true,
+
+    pathRewrite: (path) => {
+      return `/api/reservas${path}`;
+    }
+  })
+);
+
 app.get("/", (req, res) => {
   res.json({
     service: "API GATEWAY",
