@@ -43,6 +43,19 @@ app.use(
 );
 
 app.use(
+  "/uploads",
+  createProxyMiddleware({
+    target: "http://localhost:4001",
+    changeOrigin: true,
+    pathRewrite: {
+      "^/uploads": "/uploads"
+    },
+    ws: true,
+    logLevel: "debug"
+  })
+);
+
+app.use(
   "/api/reservas",
   createProxyMiddleware({
     target: "http://localhost:4003",
@@ -50,6 +63,30 @@ app.use(
 
     pathRewrite: (path) => {
       return `/api/reservas${path}`;
+    }
+  })
+);
+
+app.use(
+  "/api/pagos",
+  createProxyMiddleware({
+    target: "http://localhost:4004",
+    changeOrigin: true,
+
+    pathRewrite: (path) => {
+      return `/api/pagos${path}`;
+    }
+  })
+);
+
+app.use(
+  "/api/admin",
+  createProxyMiddleware({
+    target: "http://localhost:4005",
+    changeOrigin: true,
+
+    pathRewrite: (path) => {
+      return `/api/admin${path}`;
     }
   })
 );

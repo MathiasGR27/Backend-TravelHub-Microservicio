@@ -1,13 +1,14 @@
 const Reserva = require("../models/reserva");
 const Pasajero = require("../models/pasajero");
 const axios = require("axios");
+const { Op } = require("sequelize");
 
 const AUTH_URL = process.env.AUTH_SERVICE_URL;
 const VUELOS_URL = process.env.VUELOS_SERVICE_URL;
 
-// ------------------------------
+// ===============================
 // ASIENTOS OCUPADOS
-// ------------------------------
+// ===============================
 const obtenerAsientosOcupados = async (req, res) => {
   try {
     const { id_vuelo } = req.params;
@@ -20,174 +21,129 @@ const obtenerAsientosOcupados = async (req, res) => {
 
     const pasajeros = await Pasajero.findAll({
       where: {
-        id_reserva: ids
+        id_reserva: {
+          [Op.in]: ids
+        }
       },
       attributes: ["asiento"]
     });
 
-    const ocupados = pasajeros.map(p => p.asiento);
+    res.json(pasajeros.map(p => p.asiento));
 
-    res.json(ocupados);
   } catch (error) {
-    console.error(error);
     res.status(500).json({
-      message: "Error al obtener asientos",
+      message: "Error asientos",
       error: error.message
     });
   }
 };
 
-// ------------------------------
+// ===============================
 // CREAR RESERVA
-// ------------------------------
+// ===============================
 const crearReserva = async (req, res) => {
   try {
     const { id_vuelo, listaPasajeros } = req.body;
     const id_usuario = req.usuario.id;
 
-    if (!listaPasajeros || listaPasajeros.length === 0) {
-      return res.status(400).json({
-        message: "Lista de pasajeros vacía"
-      });
+    if (!listaPasajeros?.length) {
+      return res.status(400).json({ message: "Pasajeros vacíos" });
     }
 
-    // 1. USUARIO (AUTH SERVICE)
-    const { data: usuarioDB } = await axios.get(
+    // USER SERVICE
+    const { data: usuario } = await axios.get(
       `${AUTH_URL}/api/usuarios/${id_usuario}`
     );
 
-    if (!usuarioDB) {
-      return res.status(404).json({
-        message: "Usuario no encontrado"
-      });
-    }
-
-    // 2. VUELO (VUELOS SERVICE)
+    // VUELOS SERVICE
     const { data: vuelo } = await axios.get(
       `${VUELOS_URL}/api/vuelos/${id_vuelo}`
     );
 
-    if (!vuelo) {
-      return res.status(404).json({
-        message: "Vuelo no encontrado"
-      });
-    }
-
-    // 3. ACTUALIZAR CÉDULA (opcional)
-    const principal = listaPasajeros[0];
-
-    if (principal.cedula && usuarioDB.cedula !== principal.cedula) {
-      await axios.put(
-        `${AUTH_URL}/api/usuarios/${id_usuario}`,
-        { cedula: principal.cedula },
-        {
-          headers: {
-            Authorization: req.headers.authorization
-          }
-        }
-      );
-    }
-
-    // 4. VALIDAR ASIENTOS OCUPADOS
-    const todosLosAsientos = listaPasajeros.map(p => p.asiento);
-
-    const reservas = await Reserva.findAll({
-      where: { id_vuelo }
-    });
-
+    // ASIENTOS OCUPADOS
+    const reservas = await Reserva.findAll({ where: { id_vuelo } });
     const ids = reservas.map(r => r.id_reserva);
 
     const ocupados = await Pasajero.findAll({
       where: {
-        id_reserva: ids
-      },
-      attributes: ["asiento"]
+        id_reserva: {
+          [Op.in]: ids
+        }
+      }
     });
 
     const ocupadosList = ocupados.map(o => o.asiento);
 
-    const conflicto = todosLosAsientos.filter(a =>
-      ocupadosList.includes(a)
-    );
+    const conflicto = listaPasajeros
+      .map(p => p.asiento)
+      .filter(a => ocupadosList.includes(a));
 
     if (conflicto.length > 0) {
       return res.status(400).json({
-        message: "Asientos ya ocupados",
+        message: "Asientos ocupados",
         ocupados: conflicto
       });
     }
 
-    // 5. CREAR RESERVA
+    // CREAR RESERVA
     const reserva = await Reserva.create({
       id_usuario,
       id_vuelo,
-      total: Number(vuelo.precio) * listaPasajeros.length,
+      total: vuelo.precio * listaPasajeros.length,
       estado: "PENDIENTE"
     });
 
-    // 6. CREAR PASAJEROS
-    const pasajerosFinal = listaPasajeros.map(p => ({
-      nombre_completo: p.nombre,
-      documento: p.cedula,
-      asiento: p.asiento,
+    // PASAJEROS
+    await Pasajero.bulkCreate(
+      listaPasajeros.map(p => ({
+        nombre_completo: p.nombre,
+        documento: p.cedula,
+        asiento: p.asiento,
+        id_reserva: reserva.id_reserva
+      }))
+    );
+
+    res.json({
+      message: "Reserva creada",
       id_reserva: reserva.id_reserva
-    }));
-
-    await Pasajero.bulkCreate(pasajerosFinal);
-
-    res.status(201).json({
-      message: "Reserva creada correctamente",
-      id_reserva: reserva.id_reserva,
-      total: reserva.total
     });
 
   } catch (error) {
-    console.error("ERROR CREAR RESERVA:", error);
-
     res.status(500).json({
-      message: "Error interno",
+      message: "Error crear reserva",
       error: error.message
     });
   }
 };
 
-// ------------------------------
-// MIS RESERVAS
-// ------------------------------
+// ===============================
+// MIS RESERVAS (SIN VUELO EN DB)
+// ===============================
 const misReservas = async (req, res) => {
   try {
     const reservas = await Reserva.findAll({
       where: { id_usuario: req.usuario.id },
       include: [
         {
-          association: "pasajeros",
-          attributes: ["nombre_completo", "asiento"]
+          association: "pasajeros"
         }
-      ],
-      order: [["id_reserva", "DESC"]]
+      ]
     });
 
-    // 🔥 traer vuelos por microservicio (NO Sequelize)
     const resultado = await Promise.all(
       reservas.map(async (r) => {
         let vuelo = null;
 
         try {
-          const response = await axios.get(
+          const { data } = await axios.get(
             `${VUELOS_URL}/api/vuelos/${r.id_vuelo}`
           );
-          vuelo = response.data;
-        } catch (err) {
-          vuelo = null;
-        }
+          vuelo = data;
+        } catch {}
 
         return {
-          id_reserva: r.id_reserva,
-          fecha_reserva: r.fecha_reserva,
-          estado: r.estado,
-          total: r.total,
-          vuelo,
-          pasajeros: r.pasajeros || []
+          ...r.toJSON(),
+          vuelo
         };
       })
     );
@@ -196,15 +152,13 @@ const misReservas = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Error al obtener reservas",
+      message: "Error mis reservas",
       error: error.message
     });
   }
 };
 
-// ------------------------------
-// ADMIN
-// ------------------------------
+// ===============================
 const verTodasLasReservas = async (req, res) => {
   try {
     const reservas = await Reserva.findAll({
@@ -219,7 +173,7 @@ const verTodasLasReservas = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Error al obtener reservas"
+      message: "Error admin reservas"
     });
   }
 };

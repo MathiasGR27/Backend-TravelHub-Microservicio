@@ -13,7 +13,7 @@ const { misPuntos, obtenerUsuarioPorId } = require("../controllers/usuario.contr
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "src/uploads/");
+    cb(null, path.join(__dirname, "../uploads"));
   },
   filename: (req, file, cb) => {
     const nombreArchivo =
@@ -43,6 +43,11 @@ router.post(
   upload.single("foto"),
   async (req, res) => {
     try {
+
+      console.log("PARAMS:", req.params);
+      console.log("BODY:", req.body);
+      console.log("FILE:", req.file);
+
       const { id } = req.params;
 
       if (!req.file) {
@@ -51,8 +56,7 @@ router.post(
         });
       }
 
-      const urlFoto =
-        `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+      const urlFoto = `http://192.168.5.45:4000/uploads/${req.file.filename}`;
 
       await Usuario.update(
         { foto: urlFoto },
@@ -67,11 +71,13 @@ router.post(
         message: "Foto actualizada correctamente",
         foto: urlFoto,
       });
+
     } catch (error) {
-      console.error("Error al subir avatar:", error);
+      console.error("ERROR COMPLETO:", error);
 
       res.status(500).json({
         message: "Error interno del servidor",
+        error: error.message
       });
     }
   }
@@ -100,6 +106,33 @@ router.put("/:id", authMiddleware, async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Error al actualizar usuario",
+      error: error.message
+    });
+  }
+});
+
+router.put("/:id/puntos", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { puntos } = req.body;
+
+    const usuario = await Usuario.findByPk(id);
+
+    if (!usuario) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    usuario.puntos = puntos;
+    await usuario.save();
+
+    res.json({
+      message: "Puntos actualizados correctamente",
+      puntos: usuario.puntos
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Error al actualizar puntos",
       error: error.message
     });
   }

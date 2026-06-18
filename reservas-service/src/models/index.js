@@ -12,17 +12,10 @@ Pasajero.belongsTo(Reserva, {
   as: "reserva"
 });
 
-const conectarDB = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("Reservas Service conectado a PostgreSQL");
+module.exports = async () => {
+  await sequelize.authenticate();
+  console.log("DB conectada reservas-service");
 
-    await sequelize.sync({ alter: true });
-
-    console.log("Modelos sincronizados");
-  } catch (error) {
-    console.error("Error DB:", error);
-  }
+  await sequelize.sync({ alter: true });
+  console.log("Modelos sincronizados");
 };
-
-module.exports = conectarDB;

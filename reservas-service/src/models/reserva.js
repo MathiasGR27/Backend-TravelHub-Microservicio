@@ -10,28 +10,14 @@ const Reserva = sequelize.define("Reserva", {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
   },
-  total: {
-    type: DataTypes.DECIMAL(10,2),
-    allowNull: false
-  },
-  id_usuario: {
-    type: DataTypes.INTEGER,
-    allowNull: false
-  },
-  id_vuelo: {
-    type: DataTypes.INTEGER,
-    allowNull: false
-  },
+  total: DataTypes.DECIMAL(10,2),
+  id_usuario: DataTypes.INTEGER,
+  id_vuelo: DataTypes.INTEGER,
   estado: {
     type: DataTypes.STRING,
-    allowNull: false,
     defaultValue: "PENDIENTE"
   },
-  codigo_qr: {
-  type: DataTypes.STRING,
-  unique: true,
-  allowNull: true
-}
+  codigo_qr: DataTypes.STRING
 }, {
   tableName: "reservas",
   timestamps: false
