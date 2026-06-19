@@ -41,7 +41,7 @@ src/
 
 ---
 
-## Instalación y Uso
+## ⚙️ Instalación y Uso
 
 1. **Requisitos previos**
 
