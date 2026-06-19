@@ -10,7 +10,7 @@ const validarReservaQR = async (req, res) => {
   try {
     const { codigo } = req.params;
 
-    // 🔥 1. TRAER RESERVAS (CON TOKEN)
+    // 1. TRAER RESERVAS (CON TOKEN)
     const { data: reservas } = await axios.get(
       `${RESERVAS_URL}/api/reservas`,
       {
@@ -27,9 +27,8 @@ const validarReservaQR = async (req, res) => {
       });
     }
 
-    // 🔥 2. BUSCAR QR
+    // 2. BUSCAR QR
     const reserva = reservas.find(r => r.codigo_qr === codigo);
-
     if (!reserva) {
       return res.status(404).json({
         valido: false,
@@ -37,7 +36,7 @@ const validarReservaQR = async (req, res) => {
       });
     }
 
-    // 🔥 3. VALIDAR ESTADO
+    // 3. VALIDAR ESTADO
     if (reserva.estado !== "PAGADA") {
       return res.status(400).json({
         valido: false,
@@ -46,12 +45,11 @@ const validarReservaQR = async (req, res) => {
       });
     }
 
-    // 🔥 4. VUELO (MICROSERVICIO)
+    // 4. VUELO MICROSERVICIO
     const { data: vuelo } = await axios.get(
       `${VUELOS_URL}/api/vuelos/${reserva.id_vuelo}`
     );
-
-    // 🔥 5. DETALLE RESERVA
+    // 5. DETALLE RESERVA
     const { data: detalle } = await axios.get(
       `${RESERVAS_URL}/api/reservas/${reserva.id_reserva}`,
       {
@@ -61,7 +59,7 @@ const validarReservaQR = async (req, res) => {
       }
     );
 
-    // 🔥 6. RESPUESTA FINAL
+    // 6. RESPUESTA FINAL
     return res.json({
       valido: true,
       detalles: {

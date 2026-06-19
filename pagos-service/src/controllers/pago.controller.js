@@ -1,6 +1,5 @@
 const Pago = require("../models/pago");
 const axios = require("axios");
-
 const RESERVAS_URL = process.env.RESERVAS_SERVICE_URL;
 const AUTH_URL = process.env.AUTH_SERVICE_URL;
 
@@ -24,8 +23,7 @@ const confirmarPago = async (req, res) => {
   try {
     const { id_reserva, metodo, usar_puntos, puntos_usar } = req.body;
     const id_usuario = req.usuario.id;
-
-    // 🔥 1. RESERVA
+    // 1. RESERVA
     const { data: reserva } = await axios.get(
       `${RESERVAS_URL}/api/reservas/${id_reserva}`,
       {
@@ -34,12 +32,10 @@ const confirmarPago = async (req, res) => {
         }
       }
     );
-
     if (!reserva) {
       return res.status(404).json({ message: "Reserva no encontrada" });
     }
-
-    // 🔥 2. USUARIO
+    // 2. USUARIO
     const { data: usuario } = await axios.get(
       `${AUTH_URL}/api/usuarios/${id_usuario}`,
       {
@@ -48,49 +44,38 @@ const confirmarPago = async (req, res) => {
         }
       }
     );
-
     if (!usuario) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
-
-    // 🔥 3. DESCUENTOS
+    // 3. DESCUENTOS
     let descuento = 0;
     let puntosUsados = 0;
-
     if (usar_puntos) {
       if (puntos_usar <= 0) {
         return res.status(400).json({ message: "Puntos inválidos" });
       }
-
       if (puntos_usar > usuario.puntos) {
         return res.status(400).json({ message: "Puntos insuficientes" });
       }
-
       descuento = obtenerDescuento(puntos_usar);
-
       if (descuento === 0) {
         return res.status(400).json({
           message: "Puntos no suficientes para descuento"
         });
       }
-
       puntosUsados = puntos_usar;
     }
-
-    // 🔥 4. TOTAL FINAL
+    // 4. TOTAL FINAL
     const totalFinal =
       Number(reserva.total) - (Number(reserva.total) * descuento);
-
     const codigoQR = `QR-RES-${id_reserva}-${Date.now()}`;
-
-    // 🔥 5. CREAR PAGO
+    // 5. CREAR PAGO
     await Pago.create({
       id_reserva,
       monto: totalFinal,
       metodo
     });
-
-    // 🔥 6. ACTUALIZAR RESERVA
+    // 6. ACTUALIZAR RESERVA
     await axios.put(
       `${RESERVAS_URL}/api/reservas/${id_reserva}/pagar`,
       {
@@ -104,11 +89,9 @@ const confirmarPago = async (req, res) => {
         }
       }
     );
-
-    // 🔥 7. ACTUALIZAR PUNTOS
+    // 7. ACTUALIZAR PUNTOS
     const nuevosPuntos =
       usuario.puntos - puntosUsados + Math.floor(totalFinal);
-
     await axios.put(
       `${AUTH_URL}/api/usuarios/${id_usuario}/puntos`,
       {
@@ -120,8 +103,7 @@ const confirmarPago = async (req, res) => {
         }
       }
     );
-
-    // 🔥 8. RESPUESTA FINAL
+    // 8. RESPUESTA FINAL
     return res.json({
       message: "Pago exitoso",
       codigo_qr: codigoQR,
@@ -131,14 +113,12 @@ const confirmarPago = async (req, res) => {
 
   } catch (error) {
     console.error("ERROR PAGO:", error);
-
     return res.status(500).json({
       message: "Error en pago",
       error: error.message
     });
   }
 };
-
 // =========================
 // MIS PAGOS
 // =========================
@@ -157,7 +137,4 @@ const misPagos = async (req, res) => {
   }
 };
 
-module.exports = {
-  confirmarPago,
-  misPagos
-};
+module.exports = {confirmarPago, misPagos};

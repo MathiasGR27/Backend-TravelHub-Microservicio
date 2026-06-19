@@ -2,9 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 const app = express();
-
 app.use(cors());
-
 app.use(
   "/api/auth",
   createProxyMiddleware({
@@ -15,7 +13,6 @@ app.use(
     }
   })
 );
-
 app.use(
   "/api/vuelos",
   createProxyMiddleware({
@@ -26,7 +23,6 @@ app.use(
     }
   })
 );
-
 app.use(
   "/api/usuarios",
   createProxyMiddleware({
@@ -37,7 +33,6 @@ app.use(
     }
   })
 );
-
 app.use(
   "/uploads",
   createProxyMiddleware({
@@ -49,7 +44,6 @@ app.use(
     logLevel: "debug"
   })
 );
-
 app.use(
   "/api/reservas",
   createProxyMiddleware({
@@ -60,7 +54,6 @@ app.use(
     }
   })
 );
-
 app.use(
   "/api/pagos",
   createProxyMiddleware({
@@ -71,7 +64,6 @@ app.use(
     }
   })
 );
-
 app.use(
   "/api/admin",
   createProxyMiddleware({
@@ -82,7 +74,6 @@ app.use(
     }
   })
 );
-
 app.get("/", (req, res) => {
   res.json({
     service: "API GATEWAY",

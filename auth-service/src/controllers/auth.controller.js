@@ -1,23 +1,19 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Usuario = require("../models/usuario");
-
 // REGISTRO DE USUARIO NORMAL
 const register = async (req, res) => {
   try {
     // 1. Recibimos confirmPassword del body
     const { nombre_completo, telefono, email, password, confirmPassword } = req.body; 
-
     // 2. Validación: ¿Están todos los campos?
     if (!nombre_completo || !telefono || !email || !password || !confirmPassword) {
       return res.status(400).json({ message: "Todos los campos son obligatorios" });
     }
-
     // 3. Validación: ¿Son iguales las contraseñas? (Refuerzo de seguridad)
     if (password !== confirmPassword) {
       return res.status(400).json({ message: "Las contraseñas no coinciden" });
     }
-
     const existeUsuario = await Usuario.findOne({ where: { email } });
     if (existeUsuario) {
       return res.status(400).json({ message: "El usuario ya existe" });
